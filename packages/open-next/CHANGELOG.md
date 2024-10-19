@@ -1,5 +1,33 @@
 # open-next
 
+## 3.1.6
+
+### Patch Changes
+
+- [`ad513ef`](https://github.com/opennextjs/opennextjs-aws/commit/ad513efb8856ebdfbc11482537986abb0524ab75) Thanks [@thdxr](https://github.com/thdxr)! - remove extra binary in bin specification
+
+## 3.1.5
+
+### Patch Changes
+
+- [#542](https://github.com/opennextjs/opennextjs-aws/pull/542) [`178ab2b`](https://github.com/opennextjs/opennextjs-aws/commit/178ab2b1c95701a5f20aec107acf1fe1c6e3d9be) Thanks [@conico974](https://github.com/conico974)! - Basic support for PPR
+
+- [#555](https://github.com/opennextjs/opennextjs-aws/pull/555) [`a5fd42f`](https://github.com/opennextjs/opennextjs-aws/commit/a5fd42fa76a329cf79bba8a6af20f87481074e47) Thanks [@JackParn33](https://github.com/JackParn33)! - Fixes proxy handling of encoded request/responses, previously responses could be cut off.
+
+## 3.1.4
+
+### Patch Changes
+
+- b5bfb5d: Fix response binary content handling
+- 6b894df: lazily initialize lite client
+- 8b576d9: fix content-length incorrectly set in proxyRequest
+- 9fceedb: fix: fix basePath support for API routes
+- 5cdbc9f: Update vulnerable path-to-regexp dependency
+- 50703a3: Fix cloudflare env
+  Fix an issue with cookies and the node wrapper
+  Fix some issue with cookies being not properly set when set both in the routing layer and the route itself
+  Added option for headers priority
+
 ## 3.1.3
 
 ### Patch Changes

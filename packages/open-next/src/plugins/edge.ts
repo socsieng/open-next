@@ -57,7 +57,7 @@ export function openNextEdgePlugins({
         });
       }
 
-      build.onResolve({ filter: /\.(mjs|wasm)$/g }, (args) => {
+      build.onResolve({ filter: /\.(mjs|wasm)$/g }, () => {
         return {
           external: true,
         };
@@ -92,16 +92,8 @@ export function openNextEdgePlugins({
         contents = `
 globalThis._ENTRIES = {};
 globalThis.self = globalThis;
-if(!globalThis.process){
-  globalThis.process = {env: {}};
-}
 globalThis._ROUTES = ${JSON.stringify(routes)};
 
-import {Buffer} from "node:buffer";
-globalThis.Buffer = Buffer;
-
-import {AsyncLocalStorage} from "node:async_hooks";
-globalThis.AsyncLocalStorage = AsyncLocalStorage;
 ${
   isInCloudfare
     ? ``

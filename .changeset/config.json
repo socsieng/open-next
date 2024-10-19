@@ -1,8 +1,11 @@
 {
   "$schema": "https://unpkg.com/@changesets/config@2.3.0/schema.json",
-  "changelog": "@changesets/cli/changelog",
+  "changelog": [
+    "@changesets/changelog-github",
+    { "repo": "opennextjs/opennextjs-aws" }
+  ],
   "commit": false,
-  "fixed": [["open-next"]],
+  "fixed": [["@opennextjs/aws"]],
   "linked": [],
   "access": "public",
   "baseBranch": "main",

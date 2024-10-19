@@ -5,7 +5,7 @@ import Logo from "./components/Logo.svg";
 
 export default {
   logo: <Logo />,
-  docsRepositoryBase: "https://github.com/sst/open-next/tree/main/docs",
+  docsRepositoryBase: "https://github.com/opennextjs/opennextjs-aws/tree/main/docs",
   project: {
     link: "https://github.com/sst/open-next",
   },
@@ -20,9 +20,13 @@ export default {
     next: false,
   },
   feedback: {
-    useLink: () => "https://github.com/sst/open-next/issues/new",
+    useLink: () => "https://github.com/opennextjs/opennextjs-aws/issues/new",
   },
-  head: null,
+  head: (
+    <>
+      <meta httpEquiv="refresh" content="0; URL='https://opennext.js.org'" />
+    </>
+  ),
   useNextSeoProps() {
     const { frontMatter } = useConfig();
     return {

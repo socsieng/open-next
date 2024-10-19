@@ -2,7 +2,7 @@ import crypto from "node:crypto";
 import { OutgoingHttpHeaders } from "node:http";
 import { Readable } from "node:stream";
 
-import { BuildId, HtmlPages } from "config/index.js";
+import { BuildId, HtmlPages, NextConfig } from "config/index.js";
 import type { IncomingMessage, StreamCreator } from "http/index.js";
 import { OpenNextNodeResponse } from "http/openNextResponse.js";
 import { parseHeaders } from "http/util.js";
@@ -76,11 +76,9 @@ export function convertRes(res: OpenNextNodeResponse): InternalResult {
   // When using HEAD requests, it seems that flushHeaders is not called, not sure why
   // Probably some kind of race condition
   const headers = parseHeaders(res.getFixedHeaders());
-  const isBase64Encoded = isBinaryContentType(
-    Array.isArray(headers["content-type"])
-      ? headers["content-type"][0]
-      : headers["content-type"],
-  );
+  const isBase64Encoded =
+    isBinaryContentType(headers["content-type"]) ||
+    !!headers["content-encoding"];
   // We cannot convert the OpenNextNodeResponse to a ReadableStream directly
   // You can look in the `aws-lambda.ts` file for some context
   const body = Readable.toWeb(Readable.from(res.getBody()));
@@ -183,6 +181,7 @@ function filterHeadersForProxy(
     "x-cache",
     "transfer-encoding",
     "content-encoding",
+    "content-length",
   ];
   Object.entries(headers).forEach(([key, value]) => {
     const lowerKey = key.toLowerCase();
@@ -252,7 +251,7 @@ export async function proxyRequest(
           res.end();
           reject(e);
         });
-        _res.on("end", () => {
+        res.on("finish", () => {
           resolve();
         });
       },
@@ -323,7 +322,9 @@ export function fixSWRCacheHeader(headers: OutgoingHttpHeaders) {
  * @__PURE__
  */
 export function addOpenNextHeader(headers: OutgoingHttpHeaders) {
-  headers["X-OpenNext"] = "1";
+  if (NextConfig.poweredByHeader) {
+    headers["X-OpenNext"] = "1";
+  }
   if (globalThis.openNextDebug) {
     headers["X-OpenNext-Version"] = globalThis.openNextVersion;
     headers["X-OpenNext-RequestId"] = globalThis.__als.getStore()?.requestId;

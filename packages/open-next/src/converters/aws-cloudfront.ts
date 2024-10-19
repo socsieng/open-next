@@ -115,6 +115,7 @@ function convertToCloudfrontHeaders(
 ) {
   const cloudfrontHeaders: CloudFrontHeaders = {};
   Object.entries(headers)
+    .map(([key, value]) => [key.toLowerCase(), value] as const)
     .filter(
       ([key]) =>
         !CloudFrontBlacklistedHeaders.some((header) =>
@@ -148,12 +149,9 @@ async function convertToCloudFrontRequestResult(
   result: InternalResult | MiddlewareEvent,
   originalRequest: CloudFrontRequestEvent,
 ): Promise<CloudFrontRequestResult> {
-  let responseHeaders =
-    result.type === "middleware"
-      ? result.internalEvent.headers
-      : result.headers;
   if (result.type === "middleware") {
     const { method, clientIp, origin } = originalRequest.Records[0].cf.request;
+    const responseHeaders = result.internalEvent.headers;
 
     // Handle external rewrite
     if (result.isExternalRewrite) {
@@ -214,6 +212,7 @@ async function convertToCloudFrontRequestResult(
   }
 
   const body = await fromReadableStream(result.body, result.isBase64Encoded);
+  const responseHeaders = result.headers;
 
   const response: CloudFrontRequestResult = {
     status: result.statusCode.toString(),
@@ -222,6 +221,7 @@ async function convertToCloudFrontRequestResult(
     bodyEncoding: result.isBase64Encoded ? "base64" : "text",
     body,
   };
+
   debug(response);
   return response;
 }

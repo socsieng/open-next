@@ -1,11 +1,12 @@
 import { mkdirSync } from "node:fs";
-import url from "node:url";
 
+import { build } from "esbuild";
 import fs from "fs";
 import path from "path";
 import { MiddlewareInfo, MiddlewareManifest } from "types/next-types";
 import {
   IncludedConverter,
+  OpenNextConfig,
   OverrideOptions,
   RouteTemplate,
   SplittedFunctionOptions,
@@ -17,8 +18,6 @@ import { openNextReplacementPlugin } from "../../plugins/replacement.js";
 import { openNextResolvePlugin } from "../../plugins/resolve.js";
 import { BuildOptions, copyOpenNextConfig, esbuildAsync } from "../helper.js";
 
-const __dirname = url.fileURLToPath(new URL(".", import.meta.url));
-
 interface BuildEdgeBundleOptions {
   appBuildOutputPath: string;
   middlewareInfo: MiddlewareInfo;
@@ -29,6 +28,8 @@ interface BuildEdgeBundleOptions {
   defaultConverter?: IncludedConverter;
   additionalInject?: string;
   includeCache?: boolean;
+  additionalExternals?: string[];
+  onlyBuildOnce?: boolean;
 }
 
 export async function buildEdgeBundle({
@@ -41,7 +42,13 @@ export async function buildEdgeBundle({
   overrides,
   additionalInject,
   includeCache,
+  additionalExternals,
+  onlyBuildOnce,
 }: BuildEdgeBundleOptions) {
+  const isInCloudfare =
+    typeof overrides?.wrapper === "string"
+      ? overrides.wrapper === "cloudflare"
+      : (await overrides?.wrapper?.())?.edgeRuntime;
   await esbuildAsync(
     {
       entryPoints: [entrypoint],
@@ -89,11 +96,11 @@ export async function buildEdgeBundle({
           middlewareInfo,
           nextDir: path.join(appBuildOutputPath, ".next"),
           edgeFunctionHandlerPath: path.join(
-            __dirname,
-            "../../core",
+            options.openNextDistDir,
+            "core",
             "edgeFunctionHandler.js",
           ),
-          isInCloudfare: overrides?.wrapper === "cloudflare",
+          isInCloudfare,
         }),
       ],
       treeShaking: true,
@@ -106,8 +113,13 @@ export async function buildEdgeBundle({
       mainFields: ["module", "main"],
       banner: {
         js: `
+import {Buffer} from "node:buffer";
+globalThis.Buffer = Buffer;
+
+import {AsyncLocalStorage} from "node:async_hooks";
+globalThis.AsyncLocalStorage = AsyncLocalStorage;
   ${
-    overrides?.wrapper === "cloudflare"
+    isInCloudfare
       ? ""
       : `
   const require = (await import("node:module")).createRequire(import.meta.url);
@@ -129,12 +141,30 @@ export async function buildEdgeBundle({
     },
     options,
   );
+
+  if (!onlyBuildOnce) {
+    await build({
+      entryPoints: [outfile],
+      outfile,
+      allowOverwrite: true,
+      bundle: true,
+      minify: true,
+      platform: "node",
+      format: "esm",
+      conditions: ["workerd", "worker", "browser"],
+      external: ["node:*", ...(additionalExternals ?? [])],
+      banner: {
+        js: 'import * as process from "node:process";',
+      },
+    });
+  }
 }
 
 export function copyMiddlewareAssetsAndWasm({}) {}
 
 export async function generateEdgeBundle(
   name: string,
+  config: OpenNextConfig,
   options: BuildOptions,
   fnOptions: SplittedFunctionOptions,
 ) {
@@ -146,7 +176,7 @@ export async function generateEdgeBundle(
   fs.mkdirSync(outputPath, { recursive: true });
 
   // Copy open-next.config.mjs
-  copyOpenNextConfig(path.join(outputDir, ".build"), outputPath, true);
+  copyOpenNextConfig(options.buildDir, outputPath, true);
 
   // Load middleware manifest
   const middlewareManifest = JSON.parse(
@@ -189,9 +219,14 @@ export async function generateEdgeBundle(
   await buildEdgeBundle({
     appBuildOutputPath,
     middlewareInfo: fn,
-    entrypoint: path.join(__dirname, "../../adapters", "edge-adapter.js"),
+    entrypoint: path.join(
+      options.openNextDistDir,
+      "adapters",
+      "edge-adapter.js",
+    ),
     outfile: path.join(outputPath, "index.mjs"),
     options,
     overrides: fnOptions.override,
+    additionalExternals: config.edgeExternals,
   });
 }

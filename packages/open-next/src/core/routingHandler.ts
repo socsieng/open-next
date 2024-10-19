@@ -26,13 +26,18 @@ export interface MiddlewareOutputEvent {
 
 // Add the locale prefix to the regex so we correctly match the rawPath
 const optionalLocalePrefixRegex = !!RoutesManifest.locales.length
-  ? `^/(?:${RoutesManifest.locales.map((locale) => `${locale}/?`).join("|")})?`
+  ? `^/(?:${RoutesManifest.locales.map((locale) => locale + "/?").join("|")})?`
   : "^/";
 
 // Add the basepath prefix to the regex so we correctly match the rawPath
 const optionalBasepathPrefixRegex = !!RoutesManifest.basePath
   ? `^${RoutesManifest.basePath}/?`
   : "^/";
+
+// Add the basePath prefix to the api routes
+const apiPrefix = !!RoutesManifest.basePath
+  ? `${RoutesManifest.basePath}/api`
+  : "/api";
 
 const staticRegexp = RoutesManifest.routes.static.map(
   (route) =>
@@ -145,8 +150,8 @@ export default async function routingHandler(
   // /api even if it's a page route doesn't get generated in the manifest
   // Ideally we would need to properly check api routes here
   const isApiRoute =
-    internalEvent.rawPath === "/api" ||
-    internalEvent.rawPath.startsWith("/api/");
+    internalEvent.rawPath === apiPrefix ||
+    internalEvent.rawPath.startsWith(`${apiPrefix}/`);
 
   const isNextImageRoute = internalEvent.rawPath.startsWith("/_next/image");
 
