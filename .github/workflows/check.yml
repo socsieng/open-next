@@ -1,6 +1,11 @@
 name: Validate merge requests
 
 on:
+    workflow_dispatch:
+    push:
+        branches:
+            - main
+            - build/test-reporter-test
     pull_request:
         branches:
             - main
